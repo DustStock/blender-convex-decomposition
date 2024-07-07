@@ -131,3 +131,4 @@ dmypy.json
 # Ignore all Blender files
 **/*.blend*
 /.idea
+addons.lnk

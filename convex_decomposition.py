@@ -528,9 +528,25 @@ class ConvexDecompositionRunOperator(ConvexDecompositionBaseOperator):
         root_obj, err = self.get_selected_object()
         if err:
             return {'FINISHED'}
-        self.report({'INFO'}, f"Computing collision meshes for <{root_obj.name}>")
 
-        self.remove_stale_hulls(root_obj)
+        # Check if the object is already a split part
+        is_split_part = root_obj.name.startswith("UCX_")
+        original_name = root_obj.name
+
+        if is_split_part:
+            parent_obj = root_obj.parent
+            if parent_obj:
+                parent_name = parent_obj.name
+            else:
+                parent_name = original_name.split("_")[1]  # Fallback if no parent
+        else:
+            parent_name = original_name
+            parent_obj = root_obj
+
+        self.report({'INFO'}, f"Computing collision meshes for <{original_name}>")
+
+        if not is_split_part:
+            self.remove_stale_hulls(root_obj)
 
         # Save the selected root object to a temporary location for the solver.
         tmp_path = Path(tempfile.mkdtemp(prefix="devcomp-"))
@@ -554,7 +570,7 @@ class ConvexDecompositionRunOperator(ConvexDecompositionBaseOperator):
         del obj_path, hull_path
 
         # Clean up the object names in Blender after the import.
-        hull_objs = self.rename_hulls(props.tmp_hull_prefix, root_obj)
+        hull_objs = self.rename_hulls(props.tmp_hull_prefix, parent_obj)
 
         # Randomise the colours of the convex hulls, parent them to the
         # original object and place them into a dedicated Blender collection.
@@ -570,9 +586,14 @@ class ConvexDecompositionRunOperator(ConvexDecompositionBaseOperator):
             # Assign a random colour to the hull.
             self.randomise_colour(obj, props.transparency)
 
-            # Parent the hull to the root object without changing the relative transform.
-            obj.parent = root_obj
-            obj.matrix_parent_inverse = root_obj.matrix_world.inverted()
+            # Parent the hull to the parent object without changing the relative transform.
+            if parent_obj:
+                obj.parent = parent_obj
+                obj.matrix_parent_inverse = parent_obj.matrix_world.inverted()
+
+        # If the original object was a split part, delete it
+        if is_split_part:
+            bpy.data.objects.remove(root_obj, do_unlink=True)
 
         return {'FINISHED'}
 
