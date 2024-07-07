@@ -407,17 +407,35 @@ class ConvexDecompositionRunOperator(ConvexDecompositionBaseOperator):
         """Save a temporary copy of `obj` in OBJ format to a temporary folder.
 
         This is necessary because the various solvers all expect an OBJ file as input.
-
         """
-        with SelectionGuard(clear=True):
-            fname = path / "src.obj"
+        fname = path / "src.obj"
 
-            # Select `obj` and export it.
+        # Store the current selection state
+        original_selection = bpy.context.selected_objects
+        original_active = bpy.context.view_layer.objects.active
+
+        try:
+            # Ensure only the desired object is selected
+            bpy.ops.object.select_all(action='DESELECT')
             obj.select_set(True)
+            bpy.context.view_layer.objects.active = obj
+
+            # Export the object
             bpy.ops.wm.obj_export(
                 filepath=str(fname),
                 check_existing=False,
+                export_selected_objects=True,
+                export_triangulated_mesh=True,
+                export_materials=False,
+                apply_modifiers=True
             )
+        finally:
+            # Restore the original selection state
+            bpy.ops.object.select_all(action='DESELECT')
+            for o in original_selection:
+                o.select_set(True)
+            bpy.context.view_layer.objects.active = original_active
+
         return fname
 
     def run_vhacd(self, obj_file: Path,
