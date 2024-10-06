@@ -754,9 +754,9 @@ class ConvexDecompositionPropertiesCoACD(bpy.types.PropertyGroup):
     i_prep_resolution: bpy.props.IntProperty(  # type: ignore
         name="Manifold Pre-Processing Resolution",
         description="Resolution for manifold pre-processing.",
-        default=10_000,
-        min=1_000,
-        max=100_000,
+        default=50,
+        min=20,
+        max=100,
         subtype='UNSIGNED'
     )
     i_resolution: bpy.props.IntProperty(  # type: ignore
